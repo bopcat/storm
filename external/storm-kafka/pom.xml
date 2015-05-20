@@ -24,6 +24,8 @@
         <version>0.9.4</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
+    <groupId>com.tyntec.thirdparty.storm</groupId>
+    <!--version>0.9.4</version-->
 
     <packaging>jar</packaging>
     <artifactId>storm-kafka</artifactId>

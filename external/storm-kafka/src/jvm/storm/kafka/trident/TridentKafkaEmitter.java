@@ -29,10 +29,7 @@ import kafka.message.Message;
 import kafka.message.MessageAndOffset;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import storm.kafka.DynamicPartitionConnections;
-import storm.kafka.FailedFetchException;
-import storm.kafka.KafkaUtils;
-import storm.kafka.Partition;
+import storm.kafka.*;
 import storm.trident.operation.TridentCollector;
 import storm.trident.spout.IOpaquePartitionedTridentSpout;
 import storm.trident.spout.IPartitionedTridentSpout;
@@ -110,8 +107,18 @@ public class TridentKafkaEmitter {
         } else {
             offset = KafkaUtils.getOffset(consumer, _config.topic, partition.partition, _config);
         }
-        ByteBufferMessageSet msgs = fetchMessages(consumer, partition, offset);
-        long endoffset = offset;
+
+        ByteBufferMessageSet msgs;
+		try {
+			msgs = fetchMessages(consumer, partition, offset);
+		} catch (TopicOffsetOutOfRangeException e) {
+			long newOffset = KafkaUtils.getOffset(consumer, _config.topic, partition.partition, kafka.api.OffsetRequest.EarliestTime());
+			LOG.warn("OffsetOutOfRange: Updating offset from offset = " + offset + " to offset = " + newOffset);
+			offset = newOffset;
+			msgs = KafkaUtils.fetchMessages(_config, consumer, partition, offset);
+		}
+
+		long endoffset = offset;
         for (MessageAndOffset msg : msgs) {
             emit(collector, msg.message());
             endoffset = msg.nextOffset();
